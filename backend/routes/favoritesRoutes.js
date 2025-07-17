@@ -1,21 +1,23 @@
 import express from 'express';
-import authMiddleware from '../middleware/authMiddleware.js';
 import User from '../models/User.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+router.use(authMiddleware);
+
 // Get favorites
-router.get('/', authMiddleware, async (req, res) => {
-  const user = await User.findById(req.user);
+router.get('/', async (req, res) => {
+  const user = await User.findById(req.userId);
   res.json(user.favorites);
 });
 
 // Add favorite
-router.post('/add', authMiddleware, async (req, res) => {
+router.post('/add', async (req, res) => {
   const { id, title, poster_path } = req.body;
-  const user = await User.findById(req.user);
+  const user = await User.findById(req.userId);
 
-  if (!user.favorites.find(fav => fav.id === id)) {
+  if (!user.favorites.find((f) => f.id === id)) {
     user.favorites.push({ id, title, poster_path });
     await user.save();
   }
@@ -23,9 +25,10 @@ router.post('/add', authMiddleware, async (req, res) => {
 });
 
 // Remove favorite
-router.delete('/remove/:movieId', authMiddleware, async (req, res) => {
-  const user = await User.findById(req.user);
-  user.favorites = user.favorites.filter(fav => fav.id !== req.params.movieId);
+router.delete('/remove/:movieId', async (req, res) => {
+  const { movieId } = req.params;
+  const user = await User.findById(req.userId);
+  user.favorites = user.favorites.filter((f) => f.id !== movieId);
   await user.save();
   res.json(user.favorites);
 });
